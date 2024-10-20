@@ -48,32 +48,35 @@ function displayData(post) {
             <label>${post.type}</label>
         </a>
         <div class="post-meta">
-            ${post.score} points | by ${post.by} | ${timeConverter(post.time)}
-            ${post.descendants ? `| <button class="comment-toggle" data-post-id="${post.id}">
-                Show ${post.descendants} comments
-            </button>` : ''}
+            <span> ${post.score} points</span>
+            <span>•</span>
+            <span>by ${post.by}</span>
+            <span>•</span>
+            <span>${timeConverter(post.time)}</span>
+            ${post.descendants ? `
+                <span>•</span>
+                <button class="comment-toggle" data-post-id="${post.id}">
+                    ${post.descendants} comments
+                </button>
+            ` : ''}
         </div>
         <div class="comments" id="comments-${post.id}" style="display: none;"></div>
     `
+
     document.getElementById('posts').appendChild(list)
 
-    // Add click event listener to the toggle button if post has comments
     if (post.descendants > 0) {
         const toggleBtn = list.querySelector('.comment-toggle')
         const commentsDiv = list.querySelector('.comments')
-        let commentsLoaded = false
+
 
         toggleBtn.addEventListener('click', async () => {
-            if (!commentsLoaded) {
-                await loadComments(post.id)
-                commentsLoaded = true
-            }
-            
+            await loadComments(post.id)
+
             const isHidden = commentsDiv.style.display === 'none'
             commentsDiv.style.display = isHidden ? 'block' : 'none'
-            toggleBtn.textContent = isHidden ? 
-                `Hide ${post.descendants} comments` : 
-                `Show ${post.descendants} comments`
+            toggleBtn.style.background = isHidden ? '#4ade80' : 'transparent'
+            toggleBtn.style.color = isHidden ? '#111827' : '#4ade80'
         })
     }
 }
@@ -128,19 +131,17 @@ document.getElementById('newPostMessage').addEventListener('click', () => {
     fetchData()
 })
 
-window.addEventListener('scroll', throttle(() => {
+window.addEventListener('scroll', debounce(() => {
     if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 1000) {
         fetchData()
     }
 }, 250))
 
-function throttle(func, delay) {
-    let timer = null
+function debounce (func, delay) {
+    let timer
     return function (...args) {
-        if (!timer) {
-            func(...args)
-        }
-        timer = setTimeout(() => timer = null, delay)
+        clearTimeout(timer)
+        timer = setTimeout(() => func(...args), delay)
     }
 }
 
