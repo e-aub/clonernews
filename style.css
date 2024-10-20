@@ -137,6 +137,7 @@ header h1 {
     cursor: pointer;
     font-weight: 600;
     box-shadow: 0 4px 12px rgba(74, 222, 128, 0.2);
+    z-index: 100000;
 }
 
 #newPostMessage:hover {

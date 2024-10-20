@@ -2,6 +2,8 @@ const pageSize = 25;
 let currentPage = 0;
 let lastID = null;
 let existedPosts = new Set();
+let noMoreNewPosts = false
+let loadingPosts = false
 
 async function fetchFunc(url) {
     const response = await fetch(`https://hacker-news.firebaseio.com/v0${url}`);
@@ -12,26 +14,46 @@ async function fetchFunc(url) {
 async function fetchData() {
     const loadElement = document.getElementById("loading");
     loadElement.style.display = 'block';
-
-    try {
-        const postIds = await fetchFunc('/newstories.json');
-        if (currentPage === 0) lastID = postIds[0];
-
-        const start = currentPage * pageSize;
-        const pageIDs = postIds.slice(start, start + pageSize).filter(id => !existedPosts.has(id));
-
-        const posts = await Promise.all(pageIDs.map(id => fetchFunc(`/item/${id}.json`)));
-        const filtered = posts.filter(post => !post.deleted);
-        filtered.forEach(displayData);
-
-        currentPage++;
-    } catch (error) {
-        console.error(error);
-    } finally {
-        if (filtered.length !== 0) {
-            loadElement.style.display = 'none';
-        }
+    if (loadingPosts) {
+        return
     }
+    loadingPosts = true
+    let filtered = []
+    if (!noMoreNewPosts) {
+        try {
+            const postIds = await fetchFunc('/newstories.json');
+            if (currentPage === 0) lastID = postIds[0];
+
+            const start = currentPage * pageSize;
+            const pageIDs = postIds.slice(start, start + pageSize).filter(id => !existedPosts.has(id));
+
+            const posts = await Promise.all(pageIDs.map(id => fetchFunc(`/item/${id}.json`)));
+            filtered = posts.filter(post => !post.deleted);
+            filtered.forEach(displayData);
+            if (filtered.length === 0) {
+                noMoreNewPosts = true
+                lastID = postIds[postIds.length - 1]
+            }
+            currentPage++;
+        } catch (error) {
+            console.error(error);
+        }
+    } else {
+        console.log('finished newest');
+        let posts = [];
+        while (posts.length < pageSize) {
+            const post = await fetchFunc(`/item/${lastID}.json`)
+            if (!existedPosts.has(lastID) && post && post.title && !post.deleted) {
+                posts.push(post)
+            }
+            lastID--;
+            if (lastID < 0) break;
+        }
+        posts.forEach(post => displayData(post));
+
+    }
+    loadingPosts = false
+    loadElement.style.display = 'none';
 }
 
 function displayData(post) {
@@ -145,19 +167,30 @@ function resetPage() {
     document.getElementById('newPostMessage').style.display = 'none';
 }
 
-window.addEventListener('scroll', debounce(() => {
-    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000) {
-        fetchData();
-    }
-}, 250));
+const throttleFetchData = throttle(fetchData, 500);
 
-function debounce(func, delay) {
-    let timer;
+window.addEventListener('scroll', () => {
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000) {
+        throttleFetchData();
+    }
+});
+
+
+function throttle(func, wait) {
+    let souldWait = false
     return function (...args) {
-        clearTimeout(timer);
-        timer = setTimeout(() => func(...args), delay);
-    };
+        if (souldWait) {
+            return
+        } else {
+            func(...args)
+            souldWait = true
+            setTimeout(() => {
+                souldWait = false
+            }, wait)
+        }
+    }
 }
+
 
 async function checkNewPosts() {
     try {
