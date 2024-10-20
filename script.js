@@ -23,7 +23,6 @@ async function fetchData() {
         try {
             const postIds = await fetchFunc('/newstories.json');
             if (currentPage === 0) lastID = postIds[0];
-
             const start = currentPage * pageSize;
             const pageIDs = postIds.slice(start, start + pageSize).filter(id => !existedPosts.has(id));
 
@@ -165,6 +164,8 @@ function resetPage() {
     existedPosts.clear();
     document.getElementById('posts').innerHTML = '';
     document.getElementById('newPostMessage').style.display = 'none';
+    loadingPosts = false;
+    noMoreNewPosts = false
 }
 
 const throttleFetchData = throttle(fetchData, 500);
