@@ -47,10 +47,24 @@ header {
     margin-top: 0.5rem;
 }
 
+.comment-toggle {
+    background: none;
+    border: none;
+    color: var(--hn-orange);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0;
+    margin: 0;
+    text-decoration: underline;
+}
+
+.comment-toggle:hover {
+    color: #ff8533;
+}
+
 .comments {
-    margin-left: 1rem;
-    padding-left: 1rem;
-    border-left: 2px solid #ddd;
+    margin-top: 1rem;
+    transition: all 0.3s ease;
 }
 
 .comment {

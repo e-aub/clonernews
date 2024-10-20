@@ -49,12 +49,33 @@ function displayData(post) {
         </a>
         <div class="post-meta">
             ${post.score} points | by ${post.by} | ${timeConverter(post.time)}
-            ${post.descendants ? `| ${post.descendants} comments` : ''}
+            ${post.descendants ? `| <button class="comment-toggle" data-post-id="${post.id}">
+                Show ${post.descendants} comments
+            </button>` : ''}
         </div>
-        <div class="comments" id="comments-${post.id}"></div>
+        <div class="comments" id="comments-${post.id}" style="display: none;"></div>
     `
     document.getElementById('posts').appendChild(list)
-    if (post.descendants > 0) loadComments(post.id)
+
+    // Add click event listener to the toggle button if post has comments
+    if (post.descendants > 0) {
+        const toggleBtn = list.querySelector('.comment-toggle')
+        const commentsDiv = list.querySelector('.comments')
+        let commentsLoaded = false
+
+        toggleBtn.addEventListener('click', async () => {
+            if (!commentsLoaded) {
+                await loadComments(post.id)
+                commentsLoaded = true
+            }
+            
+            const isHidden = commentsDiv.style.display === 'none'
+            commentsDiv.style.display = isHidden ? 'block' : 'none'
+            toggleBtn.textContent = isHidden ? 
+                `Hide ${post.descendants} comments` : 
+                `Show ${post.descendants} comments`
+        })
+    }
 }
 
 function timeConverter(timeGiven) {
@@ -85,7 +106,7 @@ async function loadComments(postId) {
     if (!commentElement) return
 
     const comments = await Promise.all(
-        post.kids.slice(0, 5).map(id => fetchFunc(`/item/${id}.json`))
+        post.kids.map(id => fetchFunc(`/item/${id}.json`))
     )
 
     commentElement.innerHTML = comments.filter(comment => !comment.deleted)
