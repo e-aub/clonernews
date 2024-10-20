@@ -1,22 +1,19 @@
-const pageSize = 20
+const pageSize = 25
 let currentPage = 0
-let isLoading = false
 let lastID = null
 let existedPosts = new Set()
 
 
-async function fetchAPI(url) {
+async function fetchFunc(url) {
     const response = await fetch('https://hacker-news.firebaseio.com/v0' + url)
     return await response.json()
 }
 
 async function fetchData() {
     const loadElement = document.getElementById("loading")
-    if (isLoading) return
-    isLoading = true
-    loadElement.style.display = 'block'
 
-    const postIds = await fetchAPI('/newstories.json')
+    loadElement.style.display = 'block'
+    const postIds = await fetchFunc('/newstories.json')
     if (currentPage === 0) {
         lastID = postIds[0]
     }
@@ -27,7 +24,7 @@ async function fetchData() {
 
     const posts = await Promise.all(
         pageIDs.filter(id => !existedPosts.has(id))
-            .map(id => fetchAPI(`/item/${id}.json`))
+            .map(id => fetchFunc(`/item/${id}.json`))
     )
 
     posts.filter(post => !post.deleted).forEach(post => {
@@ -36,11 +33,10 @@ async function fetchData() {
     })
 
     currentPage++
-    isLoading = false
     loadElement.style.display = 'none'
 }
 
-function displayData (post) {
+function displayData(post) {
     if (!post || !post.title) return
 
     const list = document.createElement('li')
@@ -61,7 +57,7 @@ function displayData (post) {
     if (post.descendants > 0) loadComments(post.id)
 }
 
-function timeConverter (timeGiven) {
+function timeConverter(timeGiven) {
     const time = Math.floor((Date.now() / 1000) - timeGiven)
     const intervals = {
         year: 31536000,
@@ -82,20 +78,20 @@ function timeConverter (timeGiven) {
 }
 
 async function loadComments(postId) {
-    const post = await fetchAPI(`/item/${postId}.json`)
+    const post = await fetchFunc(`/item/${postId}.json`)
     if (!post.kids) return
 
     const commentElement = document.getElementById(`comments-${postId}`)
     if (!commentElement) return
 
     const comments = await Promise.all(
-        post.kids.slice(0, 5).map(id => fetchAPI(`/item/${id}.json`))
+        post.kids.slice(0, 5).map(id => fetchFunc(`/item/${id}.json`))
     )
 
     commentElement.innerHTML = comments.filter(comment => !comment.deleted)
         .map(comment => `
             <div class="comment">
-                <div>${comment.text}</div>
+                ${comment.text}
                 <div class="post-meta">
                     by ${comment.by} | ${timeConverter(comment.time)}
                 </div>
@@ -117,7 +113,7 @@ window.addEventListener('scroll', throttle(() => {
     }
 }, 250))
 
-function throttle (func, delay) {
+function throttle(func, delay) {
     let timer = null
     return function (...args) {
         if (!timer) {
@@ -128,7 +124,7 @@ function throttle (func, delay) {
 }
 
 async function checkNewPosts() {
-    const posts = await fetchAPI('/newstories.json');
+    const posts = await fetchFunc('/newstories.json');
     const latestId = posts[0];
 
     if (latestId > lastID) {
